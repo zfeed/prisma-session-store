@@ -435,14 +435,20 @@ export class PrismaSessionStore<M extends string = 'session'> extends Store {
 
       return callback?.();
     }
-    // If we don't have a valid connection, we can't continue;
-    // return early.
-    if (!(await this.validateConnection())) return callback?.();
 
     // Set a flag to indicate that a set() operation is in progress
     // for this sid. **NOTE**: Be sure this flag is cleared by
     // any/all paths out of this function!
     this.isSetting.set(sid, true);
+
+    try {
+      // If we don't have a valid connection, we can't continue;
+      // return early.
+      if (!(await this.validateConnection())) return callback?.();
+    } catch (e: unknown) {
+      this.isSetting.delete(sid);
+      throw e;
+    }
 
     // Note: Currently, there are two separate try / catch blocks
     // below to satisfy tests. Ultimately, it may be
